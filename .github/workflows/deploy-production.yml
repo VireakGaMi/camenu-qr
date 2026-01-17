@@ -41,14 +41,14 @@ jobs:
             cd /var/www/api/camenu-qr-engine
             mkdir -p storage bootstrap_cache certbot/conf certbot/www docker-compose/nginx  # prepares app folders
 
-      # ✅ Copy docker-compose.production.yml (production version)
-      - name: Upload docker-compose.production.yml
+      # ✅ Copy docker-compose.yml (production version)
+      - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_PROD }}
           username: ${{ secrets.SSH_USER_PROD }}
           key: ${{ secrets.SSH_KEY_PROD }}
-          source: "docker-compose.production.yml"
+          source: "docker-compose.yml"
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
       # ✅ Remote deploy on EC2
@@ -69,12 +69,12 @@ jobs:
             echo "Deploying $IMG"
             docker pull "$IMG"
 
-            docker compose -f docker-compose.production.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml up -d --remove-orphans
 
             # Wait until app is healthy
             echo "Waiting for app container to become healthy..."
             for i in {1..60}; do
-              cid=$(docker compose -f docker-compose.production.yml ps -q app || true)
+              cid=$(docker compose -f docker-compose.yml ps -q app || true)
               status="$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || true)"
               if [ "$status" = "healthy" ]; then
                 echo "✅ App is healthy"
@@ -89,10 +89,10 @@ jobs:
             done
 
             # Run Laravel cache + migrations
-            docker compose -f docker-compose.production.yml exec -T app php artisan optimize:clear
-            # docker compose -f docker-compose.production.yml exec -T app php artisan migrate --force
-            docker compose -f docker-compose.production.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.production.yml exec -T app php artisan route:cache || true
-            docker compose -f docker-compose.production.yml exec -T app php artisan view:cache
+            docker compose -f docker-compose.yml exec -T app php artisan optimize:clear
+            # docker compose -f docker-compose.yml exec -T app php artisan migrate --force
+            docker compose -f docker-compose.yml exec -T app php artisan config:cache
+            docker compose -f docker-compose.yml exec -T app php artisan route:cache || true
+            docker compose -f docker-compose.yml exec -T app php artisan view:cache
 
             docker image prune -f --filter "until=168h"
