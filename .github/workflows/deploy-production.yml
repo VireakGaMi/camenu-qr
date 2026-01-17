@@ -71,6 +71,9 @@ jobs:
             echo "📦 Starting containers"
             docker compose up -d --remove-orphans
 
+            # ----------------------------------------
+            # Wait until app is healthy
+            # ----------------------------------------
             echo "⏳ Waiting for app container to become healthy..."
             for i in {1..60}; do
               cid=$(docker compose ps -q app || true)
@@ -87,16 +90,36 @@ jobs:
               sleep 2
             done
 
-            echo "🔧 Fixing permissions"
+            # ----------------------------------------
+            # SAFE DATABASE MIGRATION (CONDITIONAL)
+            # ----------------------------------------
+            echo "🗄 Checking pending migrations..."
+            if docker compose exec -T app php artisan migrate:status | grep -q "Pending"; then
+              echo "🚀 Running migrations"
+              docker compose exec -T app php artisan migrate --force
+            else
+              echo "✅ No pending migrations"
+            fi
+
+            # ----------------------------------------
+            # Fix permissions (SAFE)
+            # ----------------------------------------
+            echo "🔧 Fixing Laravel permissions"
             docker compose exec -T app chown -R www-data:www-data storage bootstrap/cache
             docker compose exec -T app chmod -R 775 storage bootstrap/cache
 
+            # ----------------------------------------
+            # SAFE OPTIMIZE (CLEAR ONLY – NON-BLOCKING)
+            # ----------------------------------------
             echo "⚙️ Running safe optimization"
             docker compose exec -T app php artisan clear-compiled || true
             docker compose exec -T app php artisan view:clear || true
             docker compose exec -T app php artisan route:clear || true
             docker compose exec -T app php artisan config:clear || true
 
+            # ----------------------------------------
+            # Cleanup old images
+            # ----------------------------------------
             docker image prune -f --filter "until=168h"
 
             echo "🎉 Deployment finished successfully"
