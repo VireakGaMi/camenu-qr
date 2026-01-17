@@ -1,0 +1,240 @@
+{
+    "tel": "023967779",
+    "mail": "info@sahakamfi.com.kh",
+    "address": "Lot 6CD, Street 163, Village 11, Sangkat Veal Vong, Khan 7 Makara, Phnom Penh, Cambodia",
+    "cbc_key": null,
+    "wallets": [
+        {
+            "id": "1#01JMY4KCRXFGQH835142AK75NQ",
+            "hint": "Deduct the training credit at ABC/CMA",
+            "icon": "mdi-bank",
+            "name": "DF/Training Credit",
+            "rules": {
+                "canGoNegative": true,
+                "allowedCourseTypeIds": [],
+                "requiresCourseValidation": false
+            },
+            "disable": false,
+            "balances": [
+                {
+                    "currency": "USD",
+                    "total_expense": 475,
+                    "remaining_balance": -475
+                },
+                {
+                    "currency": "KHR",
+                    "total_expense": 0,
+                    "remaining_balance": 0
+                }
+            ],
+            "is_hidden": false,
+            "type_code": "training_credit",
+            "show_limit": false,
+            "is_selected": false
+        },
+        {
+            "id": "2#01JMY4KCRX8XW2DZ8PRJMPNMHJ",
+            "hint": "You/your bank will cover the fee",
+            "icon": "mdi-wallet",
+            "name": "Bank fund",
+            "rules": {
+                "canGoNegative": true,
+                "allowedCourseTypeIds": [],
+                "requiresCourseValidation": false
+            },
+            "disable": false,
+            "balances": [
+                {
+                    "currency": "USD",
+                    "total_expense": 0,
+                    "remaining_balance": 0
+                },
+                {
+                    "currency": "KHR",
+                    "total_expense": 0,
+                    "remaining_balance": 0
+                }
+            ],
+            "is_hidden": false,
+            "type_code": "bank_fund",
+            "show_limit": false,
+            "is_selected": false
+        },
+        {
+            "id": "3#01JMY4KCRXJ78MEB737MTJMSQM",
+            "hint": "Deduct the training credit at IBF",
+            "icon": "mdi-credit-card-check-outline",
+            "name": "IBF Training Credit",
+            "rules": {
+                "canGoNegative": false,
+                "excludedCourseIds": [65, 66, 57],
+                "allowedCourseTypeIds": [],
+                "requiresCourseValidation": false
+            },
+            "disable": false,
+            "balances": [
+                {
+                    "currency": "USD",
+                    "total_expense": 0,
+                    "remaining_balance": 0
+                },
+                {
+                    "currency": "KHR",
+                    "total_expense": 0,
+                    "remaining_balance": 0
+                }
+            ],
+            "is_hidden": false,
+            "type_code": "ibf_training_credit",
+            "show_limit": true,
+            "is_selected": false
+        }
+    ],
+    "website": "https://www.sahakamfi.com.kh",
+    "contacts": {
+        "billing": {
+            "id": 107,
+            "bfi": [
+                {
+                    "id": 106,
+                    "name": "Sahaka Microfinance Institution PLc.",
+                    "type": "MFI",
+                    "detail": {
+                        "tel": "023967779",
+                        "mail": "info@sahakamfi.com.kh",
+                        "address": "Lot 6CD, Street 163, Village 11, Sangkat Veal Vong, Khan 7 Makara, Phnom Penh, Cambodia",
+                        "cbc_key": null,
+                        "wallets": [
+                            {
+                                "id": "1#01JMY4KCRXFGQH835142AK75NQ",
+                                "hint": "Deduct the training credit at ABC/CMA",
+                                "icon": "mdi-bank",
+                                "name": "DF/Training Credit",
+                                "rules": {
+                                    "canGoNegative": true,
+                                    "allowedCourseTypeIds": [],
+                                    "requiresCourseValidation": false
+                                },
+                                "disable": false,
+                                "balances": [
+                                    {
+                                        "currency": "USD",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    },
+                                    {
+                                        "currency": "KHR",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    }
+                                ],
+                                "is_hidden": false,
+                                "type_code": "training_credit",
+                                "show_limit": false,
+                                "is_selected": false
+                            },
+                            {
+                                "id": "2#01JMY4KCRX8XW2DZ8PRJMPNMHJ",
+                                "hint": "You/your bank will cover the fee",
+                                "icon": "mdi-wallet",
+                                "name": "Bank fund",
+                                "rules": {
+                                    "canGoNegative": true,
+                                    "allowedCourseTypeIds": [],
+                                    "requiresCourseValidation": false
+                                },
+                                "disable": false,
+                                "balances": [
+                                    {
+                                        "currency": "USD",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    },
+                                    {
+                                        "currency": "KHR",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    }
+                                ],
+                                "is_hidden": false,
+                                "type_code": "bank_fund",
+                                "show_limit": false,
+                                "is_selected": false
+                            },
+                            {
+                                "id": "3#01JMY4KCRXJ78MEB737MTJMSQM",
+                                "hint": "Deduct the training credit at IBF",
+                                "icon": "mdi-credit-card-check-outline",
+                                "name": "IBF Training Credit",
+                                "rules": {
+                                    "canGoNegative": false,
+                                    "excludedCourseIds": [65, 66, 57],
+                                    "allowedCourseTypeIds": [],
+                                    "requiresCourseValidation": false
+                                },
+                                "disable": false,
+                                "balances": [
+                                    {
+                                        "currency": "USD",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    },
+                                    {
+                                        "currency": "KHR",
+                                        "total_expense": 0,
+                                        "remaining_balance": 0
+                                    }
+                                ],
+                                "is_hidden": false,
+                                "type_code": "ibf_training_credit",
+                                "show_limit": true,
+                                "is_selected": false
+                            }
+                        ],
+                        "website": "https://www.sahakamfi.com.kh"
+                    },
+                    "is_current": true,
+                    "membership": [
+                        {
+                            "id": 1,
+                            "price": 0,
+                            "title": "NDF",
+                            "discount": 0,
+                            "isDiscount": false,
+                            "afterDiscount": 0
+                        },
+                        {
+                            "id": 2,
+                            "price": 0,
+                            "title": "DF",
+                            "discount": 0,
+                            "isDiscount": false,
+                            "afterDiscount": 0
+                        }
+                    ]
+                }
+            ],
+            "name": "hr.sahaka",
+            "role": [
+                {
+                    "id": 6,
+                    "name": "HR",
+                    "permissions": [
+                        { "id": 1, "name": "create-order" },
+                        { "id": 4, "name": "view-order" },
+                        { "id": 15, "name": "create-user" }
+                    ]
+                }
+            ],
+            "email": "hr.sahaka@ibfkh.org",
+            "other": [],
+            "work_email": "chhun_bunchhong@sahakamfi.com.kh",
+            "phone_number": "069669984",
+            "personal_email": "chhun_bunchhong@sahakamfi.com.kh",
+            "secondary_email": "chhun_bunchhong@sahakamfi.com.kh",
+            "telegram_number": "069669984"
+        },
+        "security": { "id": 3, "name": null, "email": null, "phone": null },
+        "operation": { "id": 2, "name": null, "email": null, "phone": null }
+    }
+}
