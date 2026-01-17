@@ -19,16 +19,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Compute lowercase owner
         id: img
         run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
+      # ------------------------------------------------
+      # Prepare folders on EC2
+      # ------------------------------------------------
       - name: Prepare project folders
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -41,6 +43,9 @@ jobs:
             cd /var/www/api/camenu-qr-engine
             mkdir -p storage bootstrap_cache docker-compose/nginx
 
+      # ------------------------------------------------
+      # Upload docker-compose.yml
+      # ------------------------------------------------
       - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -50,7 +55,36 @@ jobs:
           source: "docker-compose.yml"
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
-      - name: SSH → pull & run
+      # ------------------------------------------------
+      # Upload nginx config
+      # ------------------------------------------------
+      - name: Upload nginx config
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_PROD }}
+          username: ${{ secrets.SSH_USER_PROD }}
+          key: ${{ secrets.SSH_KEY_PROD }}
+          source: "docker-compose/nginx/app.conf"
+          target: "${{ secrets.PROJECT_DIR_PROD }}/docker-compose/nginx"
+
+      # ------------------------------------------------
+      # Upload .env from GitHub Secret
+      # ------------------------------------------------
+      - name: Upload .env
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST_PROD }}
+          username: ${{ secrets.SSH_USER_PROD }}
+          key: ${{ secrets.SSH_KEY_PROD }}
+          script: |
+            cat > "${{ secrets.PROJECT_DIR_PROD }}/.env" <<'EOF'
+            ${{ secrets.ENV_PROD }}
+            EOF
+
+      # ------------------------------------------------
+      # Deploy containers
+      # ------------------------------------------------
+      - name: SSH → Pull & Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST_PROD }}
@@ -71,10 +105,7 @@ jobs:
             echo "📦 Starting containers"
             docker compose up -d --remove-orphans
 
-            # ----------------------------------------
-            # Wait until app is healthy
-            # ----------------------------------------
-            echo "⏳ Waiting for app container to become healthy..."
+            echo "⏳ Waiting for app to be healthy..."
             for i in {1..60}; do
               cid=$(docker compose ps -q app || true)
               status="$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || true)"
@@ -83,43 +114,28 @@ jobs:
                 break
               fi
               if [ "$i" -eq 60 ]; then
-                echo "❌ App failed to become healthy in time"
+                echo "❌ App failed healthcheck"
                 docker compose ps
                 exit 1
               fi
               sleep 2
             done
 
-            # ----------------------------------------
-            # SAFE DATABASE MIGRATION (CONDITIONAL)
-            # ----------------------------------------
-            echo "🗄 Checking pending migrations..."
-            if docker compose exec -T app php artisan migrate:status | grep -q "Pending"; then
-              echo "🚀 Running migrations"
+            echo "🗄 Running migrations if needed"
+            if docker compose exec -T app php artisan migrate:status | grep -q Pending; then
               docker compose exec -T app php artisan migrate --force
             else
               echo "✅ No pending migrations"
             fi
 
-            # ----------------------------------------
-            # Fix permissions (SAFE)
-            # ----------------------------------------
-            echo "🔧 Fixing Laravel permissions"
+            echo "🔧 Fix permissions"
             docker compose exec -T app chown -R www-data:www-data storage bootstrap/cache
             docker compose exec -T app chmod -R 775 storage bootstrap/cache
 
-            # ----------------------------------------
-            # SAFE OPTIMIZE (CLEAR ONLY – NON-BLOCKING)
-            # ----------------------------------------
-            echo "⚙️ Running safe optimization"
-            docker compose exec -T app php artisan clear-compiled || true
-            docker compose exec -T app php artisan view:clear || true
-            docker compose exec -T app php artisan route:clear || true
-            docker compose exec -T app php artisan config:clear || true
+            echo "⚙️ Clear caches"
+            docker compose exec -T app php artisan optimize:clear || true
 
-            # ----------------------------------------
-            # Cleanup old images
-            # ----------------------------------------
+            echo "🧹 Cleanup old images"
             docker image prune -f --filter "until=168h"
 
-            echo "🎉 Deployment finished successfully"
+            echo "🎉 Deployment completed successfully"

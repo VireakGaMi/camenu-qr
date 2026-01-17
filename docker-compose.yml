@@ -13,6 +13,7 @@ services:
       timeout: 10s
       retries: 5
     volumes:
+      - ./.env:/var/www/.env
       - storage:/var/www/storage
       - bootstrap_cache:/var/www/bootstrap/cache
 
@@ -47,6 +48,7 @@ services:
     networks:
       - app-net
     volumes:
+      - ./.env:/var/www/.env
       - storage:/var/www/storage
       - bootstrap_cache:/var/www/bootstrap/cache
 
@@ -62,6 +64,7 @@ services:
     networks:
       - app-net
     volumes:
+      - ./.env:/var/www/.env
       - storage:/var/www/storage
       - bootstrap_cache:/var/www/bootstrap/cache
 
