@@ -63,16 +63,20 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.PROJECT_DIR_PROD }}"
 
+            echo "🔐 Login to GHCR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
             IMG="ghcr.io/${{ steps.img.outputs.OWNER_LC }}/camenu-qr-engine:prod-latest"
-            echo "Deploying $IMG"
+            echo "🚀 Deploying $IMG"
             docker pull "$IMG"
 
+            echo "📦 Starting containers"
             docker compose -f docker-compose.yml up -d --remove-orphans
 
+            # ----------------------------------------
             # Wait until app is healthy
-            echo "Waiting for app container to become healthy..."
+            # ----------------------------------------
+            echo "⏳ Waiting for app container to become healthy..."
             for i in {1..60}; do
               cid=$(docker compose -f docker-compose.yml ps -q app || true)
               status="$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || true)"
@@ -88,11 +92,38 @@ jobs:
               sleep 2
             done
 
-            # Run Laravel cache + migrations
-            docker compose -f docker-compose.yml exec -T app php artisan optimize:clear
-            # docker compose -f docker-compose.yml exec -T app php artisan migrate --force
-            docker compose -f docker-compose.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.yml exec -T app php artisan route:cache || true
-            docker compose -f docker-compose.yml exec -T app php artisan view:cache
+            # ----------------------------------------
+            # Ensure APP_KEY exists (SAFE)
+            # ----------------------------------------
+            if ! docker compose exec -T app php artisan key:show >/dev/null 2>&1; then
+              echo "🔑 APP_KEY missing, generating..."
+              docker compose exec -T app php artisan key:generate
+            else
+              echo "🔑 APP_KEY already exists"
+            fi
 
+            # ----------------------------------------
+            # Fix permissions (SAFE)
+            # ----------------------------------------
+            echo "🔧 Fixing Laravel permissions"
+            docker compose exec -T app chown -R www-data:www-data storage bootstrap/cache
+            docker compose exec -T app chmod -R 775 storage bootstrap/cache
+
+            # ----------------------------------------
+            # SAFE OPTIMIZE (NON-BLOCKING)
+            # ----------------------------------------
+            echo "⚙️ Running safe optimization (clear-only)"
+
+            docker compose exec -T app php artisan clear-compiled || true
+            docker compose exec -T app php artisan view:clear || true
+            docker compose exec -T app php artisan route:clear || true
+            docker compose exec -T app php artisan config:clear || true
+
+            echo "✅ Safe optimization completed"
+
+            # ----------------------------------------
+            # Cleanup old images
+            # ----------------------------------------
             docker image prune -f --filter "until=168h"
+
+            echo "🎉 Deployment finished successfully"
