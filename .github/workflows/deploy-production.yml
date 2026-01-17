@@ -23,7 +23,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          ref: main # ensure we get main branch
+          ref: main
 
       - name: Compute lowercase owner
         id: img
@@ -36,12 +36,11 @@ jobs:
           username: ${{ secrets.SSH_USER_PROD }}
           key: ${{ secrets.SSH_KEY_PROD }}
           script: |
-            sudo mkdir -p /var/www/api/camenu-qr-engine  # safe even if directory exists or not
+            sudo mkdir -p /var/www/api/camenu-qr-engine
             sudo chown -R ubuntu:ubuntu /var/www/api/camenu-qr-engine
             cd /var/www/api/camenu-qr-engine
-            mkdir -p storage bootstrap_cache certbot/conf certbot/www docker-compose/nginx  # prepares app folders
+            mkdir -p storage bootstrap_cache docker-compose/nginx
 
-      # ✅ Copy docker-compose.yml (production version)
       - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -51,7 +50,6 @@ jobs:
           source: "docker-compose.yml"
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
-      # ✅ Remote deploy on EC2
       - name: SSH → pull & run
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -71,14 +69,11 @@ jobs:
             docker pull "$IMG"
 
             echo "📦 Starting containers"
-            docker compose -f docker-compose.yml up -d --remove-orphans
+            docker compose up -d --remove-orphans
 
-            # ----------------------------------------
-            # Wait until app is healthy
-            # ----------------------------------------
             echo "⏳ Waiting for app container to become healthy..."
             for i in {1..60}; do
-              cid=$(docker compose -f docker-compose.yml ps -q app || true)
+              cid=$(docker compose ps -q app || true)
               status="$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || true)"
               if [ "$status" = "healthy" ]; then
                 echo "✅ App is healthy"
@@ -92,38 +87,16 @@ jobs:
               sleep 2
             done
 
-            # ----------------------------------------
-            # Ensure APP_KEY exists (SAFE)
-            # ----------------------------------------
-            if ! docker compose exec -T app php artisan key:show >/dev/null 2>&1; then
-              echo "🔑 APP_KEY missing, generating..."
-              docker compose exec -T app php artisan key:generate
-            else
-              echo "🔑 APP_KEY already exists"
-            fi
-
-            # ----------------------------------------
-            # Fix permissions (SAFE)
-            # ----------------------------------------
-            echo "🔧 Fixing Laravel permissions"
+            echo "🔧 Fixing permissions"
             docker compose exec -T app chown -R www-data:www-data storage bootstrap/cache
             docker compose exec -T app chmod -R 775 storage bootstrap/cache
 
-            # ----------------------------------------
-            # SAFE OPTIMIZE (NON-BLOCKING)
-            # ----------------------------------------
-            echo "⚙️ Running safe optimization (clear-only)"
-
+            echo "⚙️ Running safe optimization"
             docker compose exec -T app php artisan clear-compiled || true
             docker compose exec -T app php artisan view:clear || true
             docker compose exec -T app php artisan route:clear || true
             docker compose exec -T app php artisan config:clear || true
 
-            echo "✅ Safe optimization completed"
-
-            # ----------------------------------------
-            # Cleanup old images
-            # ----------------------------------------
             docker image prune -f --filter "until=168h"
 
             echo "🎉 Deployment finished successfully"
