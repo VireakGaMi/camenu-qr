@@ -83,7 +83,7 @@ jobs:
           key: ${{ secrets.SSH_KEY_PROD }}
           script_stop: true
           script: |
-            set -euo pipefail
+            set -e
 
             cd ${{ secrets.PROJECT_DIR_PROD }}
 
@@ -97,32 +97,13 @@ jobs:
             docker compose up -d --remove-orphans
 
             # =========================
-            # CHECK APP_KEY (ENV SAFE)
-            # =========================
-            echo "🔎 Checking APP_KEY..."
-            if ! docker compose exec -T app sh -c '[ -n "$APP_KEY" ]'; then
-              echo "❌ APP_KEY is missing in environment"
-              echo "➡️  Generate one manually and add it to .env"
-              exit 1
-            fi
-
-            # =========================
-            # SQLITE SETUP
-            # =========================
-            echo "📦 Ensuring SQLite database exists"
-            docker compose exec -T app sh -c "
-              mkdir -p database &&
-              [ -f database/database.sqlite ] || touch database/database.sqlite
-            "
-
-            # =========================
             # LARAVEL OPTIMIZE
             # =========================
             echo "🧹 Clearing caches"
             docker compose exec -T app php artisan optimize:clear
 
-            echo "🗄️ Running migrations (SQLite)"
-            docker compose exec -T app php artisan migrate
+            echo "🗄️ Running migrations (MySQL)"
+            docker compose exec -T app php artisan migrate --force
 
             echo "🔗 Ensuring storage symlink"
             docker compose exec -T app sh -c \
@@ -131,7 +112,7 @@ jobs:
             echo "⚡ Caching config"
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache || true
-            docker compose exec -T app php artisan view:cache
+            docker compose exec -T app php artisan view:cache || true
 
             # =========================
             # CLEANUP

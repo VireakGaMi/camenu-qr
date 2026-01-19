@@ -1,9 +1,14 @@
+version: '3.8'
+
 services:
   app:
     image: ghcr.io/vireakgami/camenu-engine:latest
     container_name: camenu-app
     working_dir: /var/www
     restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
     networks:
       - app-net
     volumes:
@@ -23,6 +28,22 @@ services:
     networks:
       - app-net
 
+  mysql:
+    image: mysql:8.0
+    container_name: camenu-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: camenu_db
+      MYSQL_USER: camenu_user
+      MYSQL_PASSWORD: camenu_pass
+    ports:
+      - "3306:3306" # optional (remove in production if not needed)
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-net
+
   redis:
     image: redis:7-alpine
     container_name: camenu-redis
@@ -38,6 +59,7 @@ services:
     depends_on:
       - app
       - redis
+      - mysql
     restart: unless-stopped
     networks:
       - app-net
@@ -52,6 +74,7 @@ services:
     command: sh -lc 'while true; do php artisan schedule:run --no-interaction; sleep 60; done'
     depends_on:
       - app
+      - mysql
     restart: unless-stopped
     networks:
       - app-net
@@ -65,3 +88,4 @@ networks:
 
 volumes:
   storage: {}
+  mysql_data: {}

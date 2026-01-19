@@ -1,64 +1,48 @@
-# ---- base PHP-FPM image ----
 FROM php:8.4-fpm
 
-# Workdir
 WORKDIR /var/www
 
-# System deps
+# -------------------------------
+# System dependencies
+# -------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev libjpeg-dev libfreetype6-dev \
     libzip-dev unzip git curl \
     libonig-dev libicu-dev libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# -------------------------------
 # PHP extensions
+# -------------------------------
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql pdo_pgsql mbstring zip intl bcmath pcntl
+    && docker-php-ext-install -j$(nproc) \
+    gd pdo pdo_mysql pdo_pgsql mbstring zip intl bcmath pcntl opcache
 
-# Opcache (performance)
-RUN docker-php-ext-install opcache
+# Redis
+RUN pecl install redis && docker-php-ext-enable redis
 
-# Redis extension (queue/cache)
-RUN pecl install redis \
- && docker-php-ext-enable redis
-
-# Install Composer
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Increase memory limit for Composer
 ENV COMPOSER_MEMORY_LIMIT=-1
 
 # -------------------------------
-# Step 1: Install dependencies (cache friendly)
+# Install PHP deps (cache-friendly)
 # -------------------------------
 COPY composer.json composer.lock ./
-COPY app/ app/
-COPY artisan ./
-COPY bootstrap/ bootstrap/
-COPY config/ config/
-COPY routes/ routes/
-RUN composer install --no-dev --prefer-dist --no-interaction
+RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts
 
 # -------------------------------
-# Step 2: Copy application code
+# Copy application code
 # -------------------------------
 COPY . .
 
-# Ensure writable dirs
+# Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache \
- && find storage -type d -exec chmod 775 {} \; \
- && find storage -type f -exec chmod 664 {} \; \
- && chmod -R 775 bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache
 
-# -------------------------------
-# Step 3: Dump optimized autoloader (after code exists)
-# -------------------------------
+# Optimize autoload
 RUN composer dump-autoload --optimize --classmap-authoritative
 
-# (Optional) pre-cache config/routes if APP_KEY present at build time
-# RUN php artisan config:cache && php artisan route:cache || true
-
-# Switch user
 USER www-data
 
 EXPOSE 9000
