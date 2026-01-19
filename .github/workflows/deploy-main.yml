@@ -84,9 +84,9 @@ jobs:
             echo "🚀 Start containers"
             docker compose up -d
 
-            echo "⏳ Waiting for MySQL to be ready..."
+            echo "⏳ Waiting for MySQL port 3306..."
             set +e
-            until docker compose exec -T mysql mysqladmin ping -h localhost -uroot -proot123 --silent; do
+            until docker compose exec -T mysql sh -c "nc -z localhost 3306"; do
               sleep 2
             done
             set -e
