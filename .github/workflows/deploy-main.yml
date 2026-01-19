@@ -100,11 +100,17 @@ jobs:
               exit 1
             fi
 
+            echo "📦 Ensuring SQLite database exists"
+            docker compose exec -T app sh -c "
+              mkdir -p database &&
+              [ -f database/database.sqlite ] || touch database/database.sqlite
+            "
+
             echo "🧹 Clearing caches"
             docker compose exec -T app php artisan optimize:clear
 
-            echo "🗄️ Running migrations"
-            docker compose exec -T app php artisan migrate --force
+            echo "🗄️ Running migrations (SQLite)"
+            docker compose exec -T app php artisan migrate
 
             echo "🔗 Ensuring storage symlink"
             docker compose exec -T app sh -c \
