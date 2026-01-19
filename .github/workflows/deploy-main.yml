@@ -33,27 +33,27 @@ jobs:
       - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST_PROB }}
-          username: ${{ secrets.SSH_USER_PROB }}
-          key: ${{ secrets.SSH_KEY_PROB }}
+          host: ${{ secrets.SSH_HOST_PROD }}
+          username: ${{ secrets.SSH_USER_PROD }}
+          key: ${{ secrets.SSH_KEY_PROD }}
           source: "docker-compose.yml"
           target: "/var/www/api/camenu-qr-engine"
 
       - name: Upload nginx config
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST_PROB }}
-          username: ${{ secrets.SSH_USER_PROB }}
-          key: ${{ secrets.SSH_KEY_PROB }}
+          host: ${{ secrets.SSH_HOST_PROD }}
+          username: ${{ secrets.SSH_USER_PROD }}
+          key: ${{ secrets.SSH_KEY_PROD }}
           source: "docker-compose/nginx/app.conf"
           target: "/var/www/api/camenu-qr-engine/docker-compose/nginx"
 
       - name: SSH → deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST_PROB }}
-          username: ${{ secrets.SSH_USER_PROB }}
-          key: ${{ secrets.SSH_KEY_PROB }}
+          host: ${{ secrets.SSH_HOST_PROD }}
+          username: ${{ secrets.SSH_USER_PROD }}
+          key: ${{ secrets.SSH_KEY_PROD }}
           script_stop: true
           script: |
             set -e
