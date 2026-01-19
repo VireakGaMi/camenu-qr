@@ -1,7 +1,7 @@
 services:
   app:
     image: ghcr.io/vireakgami/camenu-engine:latest
-    container_name: ibf-app
+    container_name: camenu-app
     working_dir: /var/www
     restart: unless-stopped
     networks: [app-net]
@@ -16,7 +16,7 @@ services:
 
   webserver:
     image: nginx:alpine
-    container_name: ibf-web
+    container_name: camenu-web
     restart: unless-stopped
     ports:
       - "80:80"
@@ -28,7 +28,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ibf-redis
+    container_name: camenu-redis
     restart: unless-stopped
     networks: [app-net]
 
@@ -48,7 +48,7 @@ services:
 
   scheduler:
     image: ghcr.io/vireakgami/camenu-engine:latest
-    container_name: ibf-scheduler
+    container_name: camenu-scheduler
     working_dir: /var/www
     command: sh -lc 'while true; do php artisan schedule:run --no-interaction; sleep 60; done'
     depends_on:
