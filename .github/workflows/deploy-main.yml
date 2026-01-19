@@ -94,7 +94,7 @@ jobs:
             docker compose up -d --remove-orphans
 
             echo "🔎 Checking APP_KEY..."
-            if ! docker compose exec -T app php artisan key:status; then
+            if ! docker compose exec -T app sh -c "grep -q '^APP_KEY=base64:' .env"; then
               echo "❌ APP_KEY is missing in .env"
               echo "➡️  Generate one manually and add it to .env"
               exit 1
