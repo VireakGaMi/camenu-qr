@@ -4,12 +4,8 @@ services:
     container_name: camenu-app
     working_dir: /var/www
     restart: unless-stopped
-    networks: [app-net]
-    healthcheck:
-      test: ["CMD", "php", "-v"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+    networks:
+      - app-net
     volumes:
       - storage:/var/www/storage
       - ./.env:/var/www/.env:ro
@@ -24,24 +20,27 @@ services:
       - ./docker-compose/nginx/app.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
-    networks: [app-net]
+    networks:
+      - app-net
 
   redis:
     image: redis:7-alpine
     container_name: camenu-redis
     restart: unless-stopped
-    networks: [app-net]
+    networks:
+      - app-net
 
   queue-worker:
     image: ghcr.io/vireakgami/camenu-engine:latest
-    container_name: ibf-queue
+    container_name: camenu-queue
     working_dir: /var/www
     command: php artisan queue:work --sleep=1 --tries=3 --queue=default,emails
     depends_on:
       - app
       - redis
     restart: unless-stopped
-    networks: [app-net]
+    networks:
+      - app-net
     volumes:
       - storage:/var/www/storage
       - ./.env:/var/www/.env:ro
@@ -54,7 +53,8 @@ services:
     depends_on:
       - app
     restart: unless-stopped
-    networks: [app-net]
+    networks:
+      - app-net
     volumes:
       - storage:/var/www/storage
       - ./.env:/var/www/.env:ro

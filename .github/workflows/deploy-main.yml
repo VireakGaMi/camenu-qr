@@ -82,8 +82,6 @@ jobs:
 
             cd ${{ secrets.PROJECT_DIR_PROD }}
 
-            mkdir -p docker-compose/nginx certbot/conf certbot/www
-
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
               -u "${{ github.repository_owner }}" --password-stdin
 
@@ -93,13 +91,8 @@ jobs:
             docker pull "$IMG"
             docker compose up -d --remove-orphans
 
-            echo "⏳ Waiting for app health..."
-            for i in {1..60}; do
-              cid=$(docker compose ps -q app || true)
-              status=$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || true)
-              [ "$status" = "healthy" ] && break
-              sleep 2
-            done
+            echo "✅ Containers are running"
+            docker compose ps
 
             docker compose exec -T app php artisan optimize:clear
             docker compose exec -T app php artisan migrate --force
