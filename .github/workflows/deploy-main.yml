@@ -38,7 +38,9 @@ jobs:
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
           echo "IMAGE_NAME=camenu-engine" >> $GITHUB_OUTPUT
 
-      # ✅ Create project directory
+      # =========================
+      # CREATE PROJECT DIR
+      # =========================
       - name: Create project dir
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -49,7 +51,9 @@ jobs:
             sudo mkdir -p ${{ secrets.PROJECT_DIR_PROD }}
             sudo chown -R $USER:$USER ${{ secrets.PROJECT_DIR_PROD }}
 
-      # ✅ Upload docker-compose.yml
+      # =========================
+      # UPLOAD FILES
+      # =========================
       - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -59,8 +63,7 @@ jobs:
           source: "docker-compose.yml"
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
-      # ✅ Upload nginx config
-      - name: Upload nginx app.conf
+      - name: Upload nginx config
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_PROD }}
@@ -70,7 +73,7 @@ jobs:
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
       # =========================
-      # SSH → DEPLOY
+      # DEPLOY
       # =========================
       - name: SSH → pull & deploy
         uses: appleboy/ssh-action@v1.0.3
@@ -93,19 +96,28 @@ jobs:
             docker pull "$IMG"
             docker compose up -d --remove-orphans
 
+            # =========================
+            # CHECK APP_KEY (ENV SAFE)
+            # =========================
             echo "🔎 Checking APP_KEY..."
-            if ! docker compose exec -T app sh -c "grep -q '^APP_KEY=base64:' .env"; then
-              echo "❌ APP_KEY is missing in .env"
+            if ! docker compose exec -T app sh -c '[ -n "$APP_KEY" ]'; then
+              echo "❌ APP_KEY is missing in environment"
               echo "➡️  Generate one manually and add it to .env"
               exit 1
             fi
 
+            # =========================
+            # SQLITE SETUP
+            # =========================
             echo "📦 Ensuring SQLite database exists"
             docker compose exec -T app sh -c "
               mkdir -p database &&
               [ -f database/database.sqlite ] || touch database/database.sqlite
             "
 
+            # =========================
+            # LARAVEL OPTIMIZE
+            # =========================
             echo "🧹 Clearing caches"
             docker compose exec -T app php artisan optimize:clear
 
@@ -114,13 +126,16 @@ jobs:
 
             echo "🔗 Ensuring storage symlink"
             docker compose exec -T app sh -c \
-              "[ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage"
+              '[ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage'
 
             echo "⚡ Caching config"
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache || true
             docker compose exec -T app php artisan view:cache
 
+            # =========================
+            # CLEANUP
+            # =========================
             echo "🧽 Cleaning old images"
             docker image prune -f --filter "until=168h"
 
