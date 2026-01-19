@@ -94,22 +94,21 @@ jobs:
             docker compose up -d --remove-orphans
 
             echo "🔎 Checking APP_KEY..."
-            if ! docker compose exec -T app php -r "exit(empty(config('app.key')) ? 1 : 0);"; then
+            if ! docker compose exec -T app php artisan key:status; then
               echo "❌ APP_KEY is missing in .env"
               echo "➡️  Generate one manually and add it to .env"
               exit 1
             fi
 
-            echo "🧹 Clearing caches safely"
+            echo "🧹 Clearing caches"
             docker compose exec -T app php artisan optimize:clear
 
             echo "🗄️ Running migrations"
             docker compose exec -T app php artisan migrate --force
 
             echo "🔗 Ensuring storage symlink"
-            docker compose exec -T app sh -c "
-              [ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage
-            "
+            docker compose exec -T app sh -c \
+              "[ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage"
 
             echo "⚡ Caching config"
             docker compose exec -T app php artisan config:cache
