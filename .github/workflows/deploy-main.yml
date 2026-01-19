@@ -97,6 +97,12 @@ jobs:
             docker-compose up -d --remove-orphans
 
             # =========================
+            # WAIT FOR MYSQL (CRITICAL)
+            # =========================
+            echo "⏳ Waiting for MySQL to be ready..."
+            sleep 15
+
+            # =========================
             # LARAVEL OPTIMIZE
             # =========================
             echo "🧹 Clearing caches"
