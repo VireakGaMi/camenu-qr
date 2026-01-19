@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/vireakgami/camenu-engine:latest
+    image: ghcr.io/vireakgami/camenu-engine:main-latest
     container_name: camenu-app
     working_dir: /var/www
     restart: unless-stopped
@@ -50,7 +50,7 @@ services:
       - app-net
 
   queue-worker:
-    image: ghcr.io/vireakgami/camenu-engine:latest
+    image: ghcr.io/vireakgami/camenu-engine:main-latest
     container_name: camenu-queue
     working_dir: /var/www
     command: php artisan queue:work --sleep=1 --tries=3 --queue=default,emails
@@ -66,7 +66,7 @@ services:
       - ./.env:/var/www/.env
 
   scheduler:
-    image: ghcr.io/vireakgami/camenu-engine:latest
+    image: ghcr.io/vireakgami/camenu-engine:main-latest
     container_name: camenu-scheduler
     working_dir: /var/www
     command: sh -lc 'while true; do php artisan schedule:run --no-interaction; sleep 60; done'
