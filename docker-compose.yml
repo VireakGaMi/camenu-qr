@@ -28,7 +28,7 @@ services:
     networks:
       - app-net
 
-  mysql:                     # ✅ SAME LEVEL
+  mysql:
     image: mysql:8.0
     container_name: camenu-mysql
     restart: unless-stopped
