@@ -1,134 +1,99 @@
-name: Deploy Main
+name: Deploy main
 
 on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
-  # =========================
-  # BUILD & PUSH IMAGE
-  # =========================
   build:
     uses: ./.github/workflows/_build_and_push.yml
     with:
       tag: main-${{ github.sha }}
-      latest_tag: latest
+      latest_tag: main-latest
     secrets: inherit
 
-  # =========================
-  # DEPLOY TO SERVER
-  # =========================
   deploy:
     runs-on: ubuntu-latest
     needs: build
-
     steps:
-      - name: Checkout main branch
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Compute image info
+      - name: Compute lowercase owner
         id: img
-        run: |
-          echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
-          echo "IMAGE_NAME=camenu-engine" >> $GITHUB_OUTPUT
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
-      # =========================
-      # CREATE PROJECT DIR
-      # =========================
+      # ✅ Create project directory on server
       - name: Create project dir
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST_PROD }}
-          username: ${{ secrets.SSH_USER_PROD }}
-          key: ${{ secrets.SSH_KEY_PROD }}
+          host: ${{ secrets.SSH_HOST_PROB }}
+          username: ${{ secrets.SSH_USER_PROB }}
+          key: ${{ secrets.SSH_KEY_PROB }}
           script: |
-            sudo mkdir -p ${{ secrets.PROJECT_DIR_PROD }}
-            sudo chown -R $USER:$USER ${{ secrets.PROJECT_DIR_PROD }}
+            sudo mkdir -p /var/www/api/camenu-qr-engine
+            sudo chown -R $USER:$USER /var/www/api/camenu-qr-engine
 
-      # =========================
-      # UPLOAD FILES
-      # =========================
+      # ✅ Copy docker-compose.yml
       - name: Upload docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST_PROD }}
-          username: ${{ secrets.SSH_USER_PROD }}
-          key: ${{ secrets.SSH_KEY_PROD }}
+          host: ${{ secrets.SSH_HOST_PROB }}
+          username: ${{ secrets.SSH_USER_PROB }}
+          key: ${{ secrets.SSH_KEY_PROB }}
           source: "docker-compose.yml"
-          target: "${{ secrets.PROJECT_DIR_PROD }}"
+          target: "/var/www/api/camenu-qr-engine"
 
-      - name: Upload nginx config
+      # ✅ Copy nginx config (FIXED PATH)
+      - name: Upload nginx app.conf
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST_PROD }}
-          username: ${{ secrets.SSH_USER_PROD }}
-          key: ${{ secrets.SSH_KEY_PROD }}
+          host: ${{ secrets.SSH_HOST_PROB }}
+          username: ${{ secrets.SSH_USER_PROB }}
+          key: ${{ secrets.SSH_KEY_PROB }}
           source: "docker-compose/nginx/app.conf"
-          target: "${{ secrets.PROJECT_DIR_PROD }}"
+          target: "/var/www/api/camenu-qr-engine/docker-compose/nginx"
 
-      # =========================
-      # DEPLOY
-      # =========================
-      - name: SSH → pull & deploy
+      # ✅ Run remote deploy
+      - name: SSH → pull & run
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST_PROD }}
-          username: ${{ secrets.SSH_USER_PROD }}
-          key: ${{ secrets.SSH_KEY_PROD }}
+          host: ${{ secrets.SSH_HOST_PROB }}
+          username: ${{ secrets.SSH_USER_PROB }}
+          key: ${{ secrets.SSH_KEY_PROB }}
           script_stop: true
           script: |
-            set -e
+            set -euo pipefail
+            cd /var/www/api/camenu-qr-engine
 
-            cd ${{ secrets.PROJECT_DIR_PROD }}
+            mkdir -p docker-compose/nginx certbot/conf certbot/www
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
               -u "${{ github.repository_owner }}" --password-stdin
 
-            IMG="ghcr.io/${{ steps.img.outputs.OWNER_LC }}/${{ steps.img.outputs.IMAGE_NAME }}:latest"
-            echo "🚀 Deploying $IMG"
-
+            IMG="ghcr.io/${{ steps.img.outputs.OWNER_LC }}/camenu-engine:main-latest"
+            echo "Deploying $IMG"
             docker pull "$IMG"
 
-            # ✅ STOP OLD CONTAINERS (CRITICAL)
+            # ✅ STOP old containers (critical)
             docker compose down --remove-orphans
 
-            # ✅ START FRESH
+            # ✅ START fresh
             docker compose up -d
 
-            # =========================
-            # WAIT FOR MYSQL
-            # =========================
-            echo "⏳ Waiting for MySQL..."
-            sleep 15
+            # ✅ WAIT FOR MYSQL (DNS + readiness)
+            echo "Waiting for MySQL..."
+            until docker compose exec -T mysql mysqladmin ping -h camenu-mysql --silent; do
+              sleep 2
+            done
 
-            # =========================
-            # LARAVEL OPTIMIZE
-            # =========================
-            echo "🧹 Clearing caches"
+            # ✅ Laravel tasks
             docker compose exec -T app php artisan optimize:clear
-
-            echo "🗄️ Running migrations"
             docker compose exec -T app php artisan migrate --force
-
-            echo "🔗 Ensuring storage symlink"
-            docker compose exec -T app sh -c \
-              '[ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage'
-
-            echo "⚡ Caching config"
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache || true
-            docker compose exec -T app php artisan view:cache || true
+            docker compose exec -T app php artisan view:cache
 
-            # =========================
-            # CLEANUP
-            # =========================
-            echo "🧽 Cleaning old images"
             docker image prune -f --filter "until=168h"
-
-            echo "✅ Deployment completed successfully"
