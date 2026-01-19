@@ -94,25 +94,25 @@ jobs:
             echo "🚀 Deploying $IMG"
 
             docker pull "$IMG"
-            docker compose up -d --remove-orphans
+            docker-compose up -d --remove-orphans
 
             # =========================
             # LARAVEL OPTIMIZE
             # =========================
             echo "🧹 Clearing caches"
-            docker compose exec -T app php artisan optimize:clear
+            docker-compose exec -T app php artisan optimize:clear
 
             echo "🗄️ Running migrations (MySQL)"
-            docker compose exec -T app php artisan migrate --force
+            docker-compose exec -T app php artisan migrate --force
 
             echo "🔗 Ensuring storage symlink"
-            docker compose exec -T app sh -c \
+            docker-compose exec -T app sh -c \
               '[ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage'
 
             echo "⚡ Caching config"
-            docker compose exec -T app php artisan config:cache
-            docker compose exec -T app php artisan route:cache || true
-            docker compose exec -T app php artisan view:cache || true
+            docker-compose exec -T app php artisan config:cache
+            docker-compose exec -T app php artisan route:cache || true
+            docker-compose exec -T app php artisan view:cache || true
 
             # =========================
             # CLEANUP
