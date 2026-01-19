@@ -94,12 +94,17 @@ jobs:
             echo "🚀 Deploying $IMG"
 
             docker pull "$IMG"
-            docker compose up -d --remove-orphans
+
+            # ✅ STOP OLD CONTAINERS (CRITICAL)
+            docker compose down --remove-orphans
+
+            # ✅ START FRESH
+            docker compose up -d
 
             # =========================
-            # WAIT FOR MYSQL (CRITICAL)
+            # WAIT FOR MYSQL
             # =========================
-            echo "⏳ Waiting for MySQL to be ready..."
+            echo "⏳ Waiting for MySQL..."
             sleep 15
 
             # =========================
@@ -108,7 +113,7 @@ jobs:
             echo "🧹 Clearing caches"
             docker compose exec -T app php artisan optimize:clear
 
-            echo "🗄️ Running migrations (MySQL)"
+            echo "🗄️ Running migrations"
             docker compose exec -T app php artisan migrate --force
 
             echo "🔗 Ensuring storage symlink"
