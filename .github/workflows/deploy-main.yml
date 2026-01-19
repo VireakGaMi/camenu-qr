@@ -69,7 +69,9 @@ jobs:
           source: "docker-compose/nginx/app.conf"
           target: "${{ secrets.PROJECT_DIR_PROD }}"
 
-      # ✅ SSH → Pull & Deploy
+      # =========================
+      # SSH → DEPLOY
+      # =========================
       - name: SSH → pull & deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -91,13 +93,30 @@ jobs:
             docker pull "$IMG"
             docker compose up -d --remove-orphans
 
-            echo "✅ Containers are running"
-            docker compose ps
+            echo "🔎 Checking APP_KEY..."
+            if ! docker compose exec -T app php -r "exit(empty(config('app.key')) ? 1 : 0);"; then
+              echo "❌ APP_KEY is missing in .env"
+              echo "➡️  Generate one manually and add it to .env"
+              exit 1
+            fi
 
+            echo "🧹 Clearing caches safely"
             docker compose exec -T app php artisan optimize:clear
+
+            echo "🗄️ Running migrations"
             docker compose exec -T app php artisan migrate --force
+
+            echo "🔗 Ensuring storage symlink"
+            docker compose exec -T app sh -c "
+              [ -L public/storage ] || ln -s /var/www/storage/app/public /var/www/public/storage
+            "
+
+            echo "⚡ Caching config"
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache || true
             docker compose exec -T app php artisan view:cache
 
+            echo "🧽 Cleaning old images"
             docker image prune -f --filter "until=168h"
+
+            echo "✅ Deployment completed successfully"
