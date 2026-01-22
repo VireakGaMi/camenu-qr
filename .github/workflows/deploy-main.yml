@@ -39,7 +39,7 @@ jobs:
           username: ${{ secrets.SSH_USER_PROD }}
           key: ${{ secrets.SSH_KEY_PROD }}
           source: "docker-compose.yml"
-          target: "/var/www/api/camenu-qr-engine"
+          target: "/var/www/api/camenu-engine"
 
       # -------------------------
       # Upload nginx config
@@ -51,7 +51,7 @@ jobs:
           username: ${{ secrets.SSH_USER_PROD }}
           key: ${{ secrets.SSH_KEY_PROD }}
           source: "docker-compose/nginx/app.conf"
-          target: "/var/www/api/camenu-qr-engine/docker-compose/nginx"
+          target: "/var/www/api/camenu-engine/docker-compose/nginx"
 
       # -------------------------
       # Deploy on server
@@ -65,7 +65,7 @@ jobs:
           script_stop: true
           script: |
             set -e
-            cd /var/www/api/camenu-qr-engine
+            cd /var/www/api/camenu-engine
 
             # Ensure directories exist (important for scp)
             mkdir -p docker-compose/nginx
